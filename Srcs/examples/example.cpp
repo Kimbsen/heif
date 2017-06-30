@@ -18,6 +18,16 @@
 
 using namespace std;
 
+template<typename CharT, typename TraitsT = std::char_traits<CharT> >
+class vectorwrapbuf : public std::basic_streambuf<CharT, TraitsT> {
+public:
+    vectorwrapbuf(std::vector<CharT> &vec) {
+        this->setg(vec.data(), vec.data(), vec.data() + vec.size());
+    }
+    is
+};
+
+
 /// Access and read a cover image
 void example1()
 {
@@ -48,20 +58,29 @@ void example1()
 /// Access and read image item and its thumbnail
 int extractMaster()
 {
-    std::vector<uint32_t> buffer;
-    while(!std::cin.eof()) {
-         buffer = std::cin.rdbuf();
+    char input[1];
+    size_t readBufSize;
+    std::vector<char> buffer;
+    while (true) {
+        std::cin.read(input, sizeof(input));
+        if(cin.fail() || cin.bad() || cin.eof()) {
+            break;
+            cin.clear();
+        }
+        readBufSize = cin.gcount();
+        for (std::size_t i = 0; i < readBufSize; i++) {
+            buffer.push_back(input[i]);
+        }
     }
-    std::string s(begin, end);
-    std::cout << "HOLA";
-    /*
+    
     HevcImageFileReader reader;
     ImageFileReaderInterface::DataVector data;
     ImageFileReaderInterface::IdVector itemIds;
 
     //reader.initialize("test_001.heic");
-    //std::istream &in = std::cin;
-    reader.initialize(in);
+    vectorwrapbuf<char> databuf(buffer);
+    std::istream is(&databuf);
+    reader.initialize(is);
     const auto& properties = reader.getFileProperties();
 
     // Verify that the file has one or several images in the MetaBox
@@ -81,9 +100,10 @@ int extractMaster()
         return 1;
     }
     //write blob to stdout
+
     for (std::size_t i = 0; i < data.size(); i++) {
         std::cout << data[i];
-    }*/
+    }   
     return 0;
     //std::cout << data.size();
 }
