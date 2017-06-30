@@ -40,24 +40,33 @@ void example1()
     ImageFileReaderInterface::DataVector data;
     reader.getItemDataWithDecoderParameters(contextId, itemId, data);
 
+    
+
     // Feed 'data' to decoder and display the cover image...
 }
 
 /// Access and read image item and its thumbnail
-void example2()
+int extractMaster()
 {
+    std::vector<uint32_t> buffer;
+    while(!std::cin.eof()) {
+         buffer = std::cin.rdbuf();
+    }
+    std::string s(begin, end);
+    std::cout << "HOLA";
+    /*
     HevcImageFileReader reader;
     ImageFileReaderInterface::DataVector data;
     ImageFileReaderInterface::IdVector itemIds;
 
-    reader.initialize("test_001.heic");
+    //reader.initialize("test_001.heic");
+    //std::istream &in = std::cin;
+    reader.initialize(in);
     const auto& properties = reader.getFileProperties();
 
     // Verify that the file has one or several images in the MetaBox
-    if (not (properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasSingleImage) ||
-        properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageCollection)))
-    {
-        return;
+    if (!properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasSingleImage) && !properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageCollection)) {
+        return 1;
     }
 
     // Find the item ID of the first master image
@@ -66,21 +75,17 @@ void example2()
     const uint32_t masterId = itemIds.at(0);
 
     const auto& metaBoxFeatures = properties.rootLevelMetaBoxProperties.metaBoxFeature; // For convenience
-    if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasThumbnails))
-    {
-        // Thumbnail references ('thmb') are from the thumbnail image to the master image
-        reader.getReferencedToItemListByType(contextId, masterId, "thmb", itemIds);
-        const uint32_t thumbnailId = itemIds.at(0);
-
-        reader.getItemDataWithDecoderParameters(contextId, thumbnailId, data);
-        // ...decode data and display the image, show master image later
-    }
-    else
-    {
-        // There was no thumbnail, show just the master image
+    if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasMasterImages)) {
         reader.getItemDataWithDecoderParameters(contextId, masterId, data);
-        // ...decode and display...
+    } else {
+        return 1;
     }
+    //write blob to stdout
+    for (std::size_t i = 0; i < data.size(); i++) {
+        std::cout << data[i];
+    }*/
+    return 0;
+    //std::cout << data.size();
 }
 
 /// Access and read image items and their thumbnails in a collection
@@ -248,11 +253,11 @@ void example6()
 
 int main()
 {
-    example1();
-    example2();
-    example3();
-    example4();
-    example5();
-    example6();
+    //example1();
+    return extractMaster();
+    // example3();
+    // example4();
+    // example5();
+    // example6();
 }
 
