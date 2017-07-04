@@ -1,0 +1,5 @@
+c++ -v -lstdc++ -I/root/heif/build -I/root/heif/Srcs/common -I/root/heif/Srcs/parser -I/root/heif/Srcs/parser/avcparser -I/root/heif/Srcs/parser/h265parser -I/root/heif/Srcs/reader/ -I/root/heif/Srcs/writer -std=c++11 -L/root/heif/Srcs/examples -lcommon -lheifreader -lheifwriter -ljson -lavcparser -lh265parser example.cpp
+
+
+
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -I/Users/erik/Documents/heif/Srcs/common -I/Users/erik/Documents/heif/Srcs/parser -I/Users/erik/Documents/heif/Srcs/parser/avcparser -I/Users/erik/Documents/heif/Srcs/parser/h265parser -I/Users/erik/Documents/heif/Srcs/reader -std=c++11 -Wall -Wextra -Werror -Wno-missing-field-initializers -L/Users/erik/Documents/heif/Srcs/examples -lcommon -lheifreader -ljson -lavcparser -lh265parser example.cpp

@@ -15,24 +15,134 @@
 
 #include "hevcimagefilereader.hpp"
 #include <iostream>
+#include <boost/interprocess/streams/bufferstream.hpp>
 
 using namespace std;
 
-template<typename CharT, typename TraitsT = std::char_traits<CharT> >
-class vectorwrapbuf : public std::basic_streambuf<CharT, TraitsT> {
-public:
-    vectorwrapbuf(std::vector<CharT> &vec) {
-        this->setg(vec.data(), vec.data(), vec.data() + vec.size());
+/// Access and read image item and its thumbnail
+int extractMaster() {
+    char input[1024];
+    size_t readBufSize;
+    std::vector<char> buffer;
+    bool done = false;
+    while (!done) {
+        std::cin.read(input, sizeof(input));
+        readBufSize = cin.gcount();
+        if(cin.fail() || cin.bad() || cin.eof()) {
+            if (cin.eof()) {
+                done = true;
+            }
+            std::cin.clear();
+        }
+        for (std::size_t i = 0; i < readBufSize; i++) {
+            buffer.push_back(input[i]);
+        }
     }
-    is
-};
+    
+    HevcImageFileReader reader;
+    ImageFileReaderInterface::DataVector data;
+    ImageFileReaderInterface::DataVector dataTemp;
+    ImageFileReaderInterface::IdVector itemIds;
 
+    boost::interprocess::bufferstream input_stream(&buffer[0], buffer.size());
+    //reader.initialize("C026.heic ");
+    reader.initialize(input_stream);
+    const auto& properties = reader.getFileProperties();
+    // Verify that the file has one or several images in the MetaBox
+    if (!properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasSingleImage) && 
+        !properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageCollection) && 
+        !properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageSequence)) {
+        std::cout << "HOLA1";
+        return 1;
+    }
+
+    // Find the item ID of the first master image
+ 
+
+    const auto& metaBoxFeatures = properties.rootLevelMetaBoxProperties.metaBoxFeature; // For convenience
+    if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasMasterImages)) {
+        const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
+        reader.getItemListByType(contextId, "master", itemIds);
+        const uint32_t masterId = itemIds.at(0);   
+
+        //std::cout << "HOLA2";
+        reader.getItemDataWithDecoderParameters(contextId, masterId, data);
+    } else if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasThumbnails)) {
+        const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
+        reader.getItemListByType(contextId, "master", itemIds);
+        const uint32_t masterId = itemIds.at(0);   
+
+        //std::cout << "HOLA3";
+        reader.getReferencedToItemListByType(contextId, masterId, "thmb", itemIds);
+        const uint32_t thumbnailId = itemIds.at(0);
+        reader.getItemDataWithDecoderParameters(contextId, thumbnailId, data);
+    } else {
+        //std::cout << "HOLA4";
+        for (const auto& trackProperties : properties.trackProperties) {
+            const uint32_t contextId = trackProperties.first;
+            //std::cout << "Track ID " << contextId << endl; // Context ID corresponds to the track ID
+
+            /*if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsMasterImageSequence)) {
+                //std::cout << "This is a master image sequence." << endl;
+            }
+
+            if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsThumbnailImageSequence)) {
+                // Assume there is only one type track reference, so check reference type and master track ID(s) from the first one.
+                const auto tref = trackProperties.second.referenceTrackIds.cbegin();
+                //std::cout << "Track reference type is '"<< tref->first << "'" << endl;
+                //std::cout << "This is a thumbnail track for track ID ";
+                for (const auto masterTrackId : tref->second) {
+                    //std::cout << masterTrackId << endl;
+                }
+            }
+
+            ImageFileReaderInterface::TimestampMap timestamps;
+            reader.getItemTimestamps(contextId, timestamps);
+            //std::cout << "Sample timestamps:" << endl;
+            for (const auto& timestamp : timestamps) {
+                //std::cout << " Timestamp=" << timestamp.first << "ms, sample ID=" << timestamp.second << endl;
+            }*/
+
+            for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
+                ImageFileReaderInterface::IdVector itemsToDecode;
+                const uint32_t sampleId = sampleProperties.first;
+
+                // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
+                // decode all dependencies.
+                reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
+                for (auto dependencyId : itemsToDecode) {
+                    //std::cout << "HOLA1\n";
+                    reader.getItemDataWithDecoderParameters(contextId, dependencyId, dataTemp);
+                    if (dataTemp.size() >= data.size()) {
+                        //std::cout << "HOLA2\n";
+                        data.clear();
+                        for (size_t i = 0; i < dataTemp.size(); i++) {
+                            //std::cout << "HOLA3\n";
+                            data.push_back(dataTemp[i]);
+                        }
+                    }
+                    dataTemp.clear();
+                    // Feed data to decoder...
+                }
+            // Store or show the image...
+            }
+        }
+    }
+    //write blob to stdout
+    for (std::size_t i = 0; i < data.size(); i++) {
+        std::cout << data[i];
+    }
+    
+    return 0;
+}
 
 /// Access and read a cover image
 void example1()
 {
+    std::cout << "example1 started";
+
     HevcImageFileReader reader;
-    reader.initialize("test_001.heic");
+    reader.initialize("C034.heic");
     const auto& properties = reader.getFileProperties();
 
     // Verify that the file has a cover image
@@ -50,42 +160,28 @@ void example1()
     ImageFileReaderInterface::DataVector data;
     reader.getItemDataWithDecoderParameters(contextId, itemId, data);
 
-    
-
     // Feed 'data' to decoder and display the cover image...
+    std::cout << "example1 ended";
 }
 
 /// Access and read image item and its thumbnail
-int extractMaster()
+void example2()
 {
-    char input[1];
-    size_t readBufSize;
-    std::vector<char> buffer;
-    while (true) {
-        std::cin.read(input, sizeof(input));
-        if(cin.fail() || cin.bad() || cin.eof()) {
-            break;
-            cin.clear();
-        }
-        readBufSize = cin.gcount();
-        for (std::size_t i = 0; i < readBufSize; i++) {
-            buffer.push_back(input[i]);
-        }
-    }
-    
+    std::cout << "example2 started";
+
     HevcImageFileReader reader;
     ImageFileReaderInterface::DataVector data;
     ImageFileReaderInterface::IdVector itemIds;
 
-    //reader.initialize("test_001.heic");
-    vectorwrapbuf<char> databuf(buffer);
-    std::istream is(&databuf);
-    reader.initialize(is);
+    reader.initialize("C034.heic");
     const auto& properties = reader.getFileProperties();
 
     // Verify that the file has one or several images in the MetaBox
-    if (!properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasSingleImage) && !properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageCollection)) {
-        return 1;
+    if (not (properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasSingleImage) ||
+        properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageCollection)))
+    {
+        std::cout << "HOLA";
+        return;
     }
 
     // Find the item ID of the first master image
@@ -94,23 +190,29 @@ int extractMaster()
     const uint32_t masterId = itemIds.at(0);
 
     const auto& metaBoxFeatures = properties.rootLevelMetaBoxProperties.metaBoxFeature; // For convenience
-    if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasMasterImages)) {
-        reader.getItemDataWithDecoderParameters(contextId, masterId, data);
-    } else {
-        return 1;
-    }
-    //write blob to stdout
+    if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasThumbnails))
+    {
+        // Thumbnail references ('thmb') are from the thumbnail image to the master image
+        reader.getReferencedToItemListByType(contextId, masterId, "thmb", itemIds);
+        const uint32_t thumbnailId = itemIds.at(0);
 
-    for (std::size_t i = 0; i < data.size(); i++) {
-        std::cout << data[i];
-    }   
-    return 0;
-    //std::cout << data.size();
+        reader.getItemDataWithDecoderParameters(contextId, thumbnailId, data);
+        // ...decode data and display the image, show master image later
+    }
+    else
+    {
+        // There was no thumbnail, show just the master image
+        reader.getItemDataWithDecoderParameters(contextId, masterId, data);
+        // ...decode and display...
+    }
+    std::cout << "example2 ended";
 }
 
 /// Access and read image items and their thumbnails in a collection
 void example3()
 {
+    std::cout << "example3 started";
+
     HevcImageFileReader reader;
     ImageFileReaderInterface::DataVector data;
     typedef uint32_t MasterItemId;
@@ -118,7 +220,7 @@ void example3()
     ImageFileReaderInterface::IdVector itemIds;
     map<MasterItemId, ThumbnailItemId> imageMap;
 
-    reader.initialize("test_002.heic");
+    reader.initialize("C034.heic");
     const auto& properties = reader.getFileProperties();
 
     // Find item IDs of master images
@@ -137,16 +239,19 @@ void example3()
         imageMap[masterId] = thumbId;
     }
 
+    std::cout << "example3 ended";
     // We have now item IDs of thumbnails and master images. Decode and show them from imageMap as wanted.
 }
 
 /// Access and read derived images
 void example4()
 {
+    std::cout << "example4 started";
+
     HevcImageFileReader reader;
     ImageFileReaderInterface::IdVector itemIds;
 
-    reader.initialize("test_003.heic");
+    reader.initialize("C034.heic");
     const auto& properties = reader.getFileProperties();
     const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
 
@@ -177,15 +282,19 @@ void example4()
     cout << "To render derived image item ID " << itemId << ":" << endl;
     cout << "-retrieve data for source image item ID " << sourceItemId << endl;
     cout << "-rotating image " << rotation << " degrees." << endl;
+
+    std::cout << "example4 ended";
 }
 
 /// Access and read media track samples, thumbnail track samples and timestamps
 void example5()
 {
+    std::cout << "example5 started";
+
     HevcImageFileReader reader;
     ImageFileReaderInterface::IdVector itemIds;
 
-    reader.initialize("test_011.heic");
+    reader.initialize("C034.heic");
     const auto& properties = reader.getFileProperties();
 
     // Print information for every track read
@@ -236,15 +345,19 @@ void example5()
              // Store or show the image...
          }
      }
+
+     std::cout << "example5 ended";
 }
 
 /// Access and read media alternative
 void example6()
 {
+    std::cout << "example6 started";
+
     HevcImageFileReader reader;
     ImageFileReaderInterface::IdVector itemIds;
 
-    reader.initialize("test_030_2.heic");
+    reader.initialize("C034.heic");
     const auto& properties = reader.getFileProperties();
 
     uint32_t trackId = 0;
@@ -268,16 +381,16 @@ void example6()
             }
         }
     }
+    std::cout << "example6 ended";
 }
 
-
-int main()
-{
+int main() {
     //example1();
+    //example2();
+    //example3();
+    //example4();
+    //example5();
+    //example6();
     return extractMaster();
-    // example3();
-    // example4();
-    // example5();
-    // example6();
 }
 
