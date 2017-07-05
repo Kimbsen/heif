@@ -61,14 +61,14 @@ int extractMaster() {
 
     const auto& metaBoxFeatures = properties.rootLevelMetaBoxProperties.metaBoxFeature; // For convenience
     if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasMasterImages)) {
+        //std::cout << "HOLA2";
         const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
         reader.getItemListByType(contextId, "master", itemIds);
         const uint32_t masterId = itemIds.at(0);   
 
-        //std::cout << "HOLA2";
         reader.getItemDataWithDecoderParameters(contextId, masterId, data);
     } else if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasThumbnails)) {
-        std::cout << "HOLA3";
+        //std::cout << "HOLA3";
         return 1;
         /*const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
         reader.getItemListByType(contextId, "master", itemIds);
@@ -78,33 +78,70 @@ int extractMaster() {
         const uint32_t thumbnailId = itemIds.at(0);
         reader.getItemDataWithDecoderParameters(contextId, thumbnailId, data);*/
     } else {
-        // std::cout << "HOLA4";
+        //std::cout << "HOLA4" << endl;
         // return 1;
         for (const auto& trackProperties : properties.trackProperties) {
-            /*ImageFileReaderInterface::TrackFeature trackFeature = trackProperties.trackFeature;
-            if (!trackFeature.HasSingleImage && !!trackFeature.HasImageCollection && !trackFeature.HasImageSequence) {
+            if (data.size() > 0) {
+                break;
+            }             
+            //std::cout << "HOLA5" << endl;
+            if (!trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsMasterImageSequence)) {
+                //std::cout << "HOLA6" << endl;
                 continue;
-            }*/
+            }
+            //std::cout << "HOLA7" << endl;
             const uint32_t contextId = trackProperties.first;
-            //std::cout << "Track ID " << contextId << endl; // Context ID corresponds to the track ID
+            if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasAlternatives)) {
+                //std::cout << "HOLA8" << endl;
 
-            for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
-                ImageFileReaderInterface::IdVector itemsToDecode;
-                const uint32_t sampleId = sampleProperties.first;
+                //std::cout << std::flush;
+                for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
+                    ImageFileReaderInterface::IdVector itemsToDecode;
+                    const uint32_t sampleId = sampleProperties.first;
 
-                // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
-                // decode all dependencies.
-                reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
-                for (auto dependencyId : itemsToDecode) {
-                    //std::cout << "HOLA1\n";
-                    reader.getItemDataWithDecoderParameters(contextId, dependencyId, dataTemp);
-                    for (size_t i = 0; i < dataTemp.size(); i++) {
-                        data.push_back(dataTemp[i]);
-                    }                    
-                    dataTemp.clear();
-                    // Feed data to decoder...
+                    // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
+                    // decode all dependencies.
+                    reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
+                    for (auto dependencyId : itemsToDecode) {
+                        //std::cout << "HOLA1\n";
+                        reader.getItemDataWithDecoderParameters(contextId, dependencyId, dataTemp);
+                        cout << dataTemp.size() << endl;
+                        if (dataTemp.size() > 0 && data.size() > 0 && dataTemp.size() < data.size()) {
+                            data.clear();
+                        }
+                        for (size_t i = 0; i < dataTemp.size(); i++) {
+                            data.push_back(dataTemp[i]);
+                        }                    
+                        dataTemp.clear();
+                        // Feed data to decoder...
+                    }
+                // Store or show the image...
                 }
-            // Store or show the image...
+                
+            } else {
+                //cout << "NO HasAlternatives" << endl;
+                //std::cout << std::flush;   
+                for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
+                    ImageFileReaderInterface::IdVector itemsToDecode;
+                    const uint32_t sampleId = sampleProperties.first;
+
+                    // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
+                    // decode all dependencies.
+                    reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
+                    for (auto dependencyId : itemsToDecode) {
+                        //std::cout << "HOLA1\n";
+                        reader.getItemDataWithDecoderParameters(contextId, dependencyId, dataTemp);
+                        for (size_t i = 0; i < dataTemp.size(); i++) {
+                            data.push_back(dataTemp[i]);
+                        }                    
+                        dataTemp.clear();
+                        // Feed data to decoder...
+                    }
+                    if (data.size() > 0) {
+                        break;
+                    }
+                // Store or show the image...
+                }
             }
         }
     }
@@ -293,6 +330,10 @@ void example5(const std::string testFile) {
         const uint32_t contextId = trackProperties.first;
         cout << "Track ID " << contextId << endl; // Context ID corresponds to the track ID
 
+        /*if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasTrackLevelMetaBox)) {
+            cout << "HasTrackLevelMetaBox" << endl;
+        }*/
+
         if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsMasterImageSequence)) {
             cout << "This is a master image sequence." << endl;
         }
@@ -307,6 +348,62 @@ void example5(const std::string testFile) {
             }
         }
 
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsAuxiliaryImageSequence)) {
+            cout << "IsAuxiliaryImageSequence: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsTimedMetadataTrack)) {
+            cout << "IsTimedMetadataTrack: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsEnabled)) {
+            cout << "IsEnabled: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsInMovie)) {
+            cout << "IsInMovie: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsInPreview)) {
+            cout << "IsInPreview: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasAlternatives)) {
+            cout << "HasAlternatives: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasCodingConstraints)) {
+            cout << "HasCodingConstraints: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasCoverImage)) {
+            cout << "HasCoverImage: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasSampleGroups)) {
+            cout << "HasSampleGroups: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasLinkedAuxiliaryImageSequence)) {
+            cout << "HasLinkedAuxiliaryImageSequence: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasLinkedTimedMetaDataTrack)) {
+            cout << "HasLinkedTimedMetaDataTrack: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasSampletoItemGrouping)) {
+            cout << "HasSampletoItemGrouping: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasLinkedContentDescription)) {
+            cout << "HasLinkedContentDescription: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasExifSampleEntry)) {
+            cout << "HasExifSampleEntry: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasXmlSampleEntry)) {
+            cout << "HasXmlSampleEntry: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasEditList)) {
+            cout << "HasEditList: " << endl;
+        }
+        if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasInfiniteLoopPlayback)) {
+            cout << "HasInfiniteLoopPlayback: " << endl;
+        }
+
+        for (size_t i = 0; i < reader.getCompatibleBrands().size(); ++i) {
+            std::cout << reader.getCompatibleBrands()[i] << endl;                
+        }
+
         ImageFileReaderInterface::TimestampMap timestamps;
         reader.getItemTimestamps(contextId, timestamps);
         cout << "Sample timestamps:" << endl;
@@ -315,12 +412,18 @@ void example5(const std::string testFile) {
         }
 
         for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
-            ImageFileReaderInterface::IdVector itemsToDecode;
             const uint32_t sampleId = sampleProperties.first;
+            //cout << sampleProperties.second.sampleType << endl;
+
 
             // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
             // decode all dependencies.
+            ImageFileReaderInterface::IdVector itemsToDecode;
             reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
+            cout << reader.getMajorBrand() << endl;
+            cout << unsigned(reader.getMinorVersion()) << endl;
+
+            //cout << reader.getCompatibleBrands() << endl;            
             for (auto dependencyId : itemsToDecode) {
                 ImageFileReaderInterface::DataVector data;
                 reader.getItemDataWithDecoderParameters(contextId, dependencyId, data);
@@ -348,16 +451,19 @@ void example6(const std::string testFile)
 
     if (properties.trackProperties.size() > 0)
     {
+        std::cout << "HOLA1" << endl;
         auto iter = properties.trackProperties.cbegin(); // Get first image sequence track
         trackId = iter->first;
         const HevcImageFileReader::TrackProperties& trackProperties = iter->second;
 
         if (trackProperties.trackFeature.hasFeature(HevcImageFileReader::TrackFeature::HasAlternatives))
         {
+            std::cout << "HOLA2" << endl;
             const uint32_t alternativeTrackId = trackProperties.alternateTrackIds.at(0); // Take the first alternative
             const auto alternativeWidth = reader.getDisplayWidth(alternativeTrackId);
             const auto trackWidth = reader.getDisplayWidth(trackId);
-
+            cout << trackWidth << endl;
+            cout << alternativeWidth << endl;
             if (trackWidth > alternativeWidth)
             {
                 cout << "The alternative track has wider display width, let's use it from now on..." << endl;
@@ -370,12 +476,12 @@ void example6(const std::string testFile)
 
 int main() {
     const std::string testFile = "C031.heic";
-    // example1(testFile);
-    // example2(testFile);
-    // example3(testFile);
-    // example4(testFile);
-    // example5(testFile);
-    // example6(testFile);
+    //example1(testFile);
+    //example2(testFile);
+    //example3(testFile);
+    //example4(testFile);
+    //example5(testFile);
+    //example6(testFile);
     return extractMaster();
 }
 

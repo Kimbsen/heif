@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	//"io/ioutil"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -77,7 +77,7 @@ func extractH265Thumb(filename string) ([]byte, error) {
 }
 
 func transcodeH265Thumb(blob []byte, filename string) error {
-	/*tempFile, err := ioutil.TempFile("", "temp")
+	tempFile, err := ioutil.TempFile("", "temp")
 	if err != nil {
 		return err
 	}
@@ -86,16 +86,22 @@ func transcodeH265Thumb(blob []byte, filename string) error {
 	if err != nil {
 		return err
 	}
-	log.Println(tempFile.Name())*/
+	log.Println(tempFile.Name())
 	var stdOut bytes.Buffer
 	var stdErr bytes.Buffer
-	blobReader := bytes.NewReader(blob)
-	cmd := exec.Command("ffmpeg", "-i", "pipe:0", "-loglevel", "fatal", "-frames:v", "1", "-vsync", "vfr", "-q:v", "1", "-an", fmt.Sprintf("%s.jpg", filename))
+	//blobReader := bytes.NewReader(blob)
+	var name string
+	if filename == "C031.heic" {
+		name = filename
+	} else {
+		name = tempFile.Name()
+	}
+	cmd := exec.Command("ffmpeg", "-i", name, "-loglevel", "fatal", "-frames:v", "1", "-vsync", "vfr", "-q:v", "1", "-an", fmt.Sprintf("%s.jpg", filename))
 
-	cmd.Stdin = blobReader
+	//cmd.Stdin = blobReader
 	cmd.Stdout = &stdOut
 	cmd.Stderr = &stdErr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return err
 	}
