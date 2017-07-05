@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	//"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -39,24 +40,23 @@ func getFilenames() ([]string, error) {
 
 func extractH265Thumbs(filenames []string) error {
 	for _, filename := range filenames {
-		if filename == "C034.heic" || filename == "C026.heic" || filename == "C029.heic" {
-			continue
+		if filename == "C026.heic" || filename == "C029.heic" || filename == "C030.heic" {
+			//continue
 		}
 		blob, err := extractH265Thumb(filename)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s failed @ extractH265Thumb, reason: %s", filename, err.Error())
 		}
 		err = transcodeH265Thumb(blob, filename)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s failed @ transcodeH265Thumb, reason: %s", filename, err.Error())
 		}
-		log.Println(filename)
+		log.Printf("%s processed!", filename)
 	}
 	return nil
 }
 
 func extractH265Thumb(filename string) ([]byte, error) {
-	//log.Println(fmt.Sprintf("%s/%s", HEIC_DIR, filename))
 	file, err := os.Open(fmt.Sprintf("%s/%s", HEIC_DIR, filename))
 	if err != nil {
 		return nil, err
@@ -77,7 +77,16 @@ func extractH265Thumb(filename string) ([]byte, error) {
 }
 
 func transcodeH265Thumb(blob []byte, filename string) error {
-	//log.Println(fmt.Sprintf("%s/%s", HEIC_DIR, filename))
+	/*tempFile, err := ioutil.TempFile("", "temp")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tempFile.Name())
+	_, err = tempFile.Write(blob)
+	if err != nil {
+		return err
+	}
+	log.Println(tempFile.Name())*/
 	var stdOut bytes.Buffer
 	var stdErr bytes.Buffer
 	blobReader := bytes.NewReader(blob)
