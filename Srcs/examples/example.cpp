@@ -41,12 +41,10 @@ int extractMaster() {
     
     HevcImageFileReader reader;
     ImageFileReaderInterface::DataVector data;
-    ImageFileReaderInterface::DataVector dataTemp;
     ImageFileReaderInterface::IdVector itemIds;
 
     boost::interprocess::bufferstream input_stream(&buffer[0], buffer.size());
     reader.initialize(input_stream);
-
     const auto& properties = reader.getFileProperties();
     // Verify that the file has one or several images in the MetaBox
     if (!properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasSingleImage) && 
@@ -57,8 +55,6 @@ int extractMaster() {
     }
 
     // Find the item ID of the first master image
- 
-
     const auto& metaBoxFeatures = properties.rootLevelMetaBoxProperties.metaBoxFeature; // For convenience
     if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasMasterImages)) {
         //std::cout << "HOLA2";
@@ -67,81 +63,33 @@ int extractMaster() {
         const uint32_t masterId = itemIds.at(0);   
 
         reader.getItemDataWithDecoderParameters(contextId, masterId, data);
-    } else if (metaBoxFeatures.hasFeature(ImageFileReaderInterface::MetaBoxFeature::HasThumbnails)) {
-        //std::cout << "HOLA3";
-        return 1;
-        /*const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
-        reader.getItemListByType(contextId, "master", itemIds);
-        const uint32_t masterId = itemIds.at(0);   
-
-        reader.getReferencedToItemListByType(contextId, masterId, "thmb", itemIds);
-        const uint32_t thumbnailId = itemIds.at(0);
-        reader.getItemDataWithDecoderParameters(contextId, thumbnailId, data);*/
     } else {
-        //std::cout << "HOLA4" << endl;
-        // return 1;
         for (const auto& trackProperties : properties.trackProperties) {
-            if (data.size() > 0) {
+            
+            if (data.size() > 0 ) {
                 break;
             }             
-            //std::cout << "HOLA5" << endl;
             if (!trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::IsMasterImageSequence)) {
-                //std::cout << "HOLA6" << endl;
                 continue;
             }
-            //std::cout << "HOLA7" << endl;
-            const uint32_t contextId = trackProperties.first;
-            if (trackProperties.second.trackFeature.hasFeature(ImageFileReaderInterface::TrackFeature::HasAlternatives)) {
-                //std::cout << "HOLA8" << endl;
+            for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
+                if (data.size() > 0 ) {
+                    break;
+                }                      
+                ImageFileReaderInterface::IdVector itemsToDecode;
+                const uint32_t sampleId = sampleProperties.first;
+                const uint32_t contextId = trackProperties.first;
 
-                //std::cout << std::flush;
-                for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
-                    ImageFileReaderInterface::IdVector itemsToDecode;
-                    const uint32_t sampleId = sampleProperties.first;
-
-                    // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
-                    // decode all dependencies.
-                    reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
-                    for (auto dependencyId : itemsToDecode) {
-                        //std::cout << "HOLA1\n";
-                        reader.getItemDataWithDecoderParameters(contextId, dependencyId, dataTemp);
-                        cout << dataTemp.size() << endl;
-                        if (dataTemp.size() > 0 && data.size() > 0 && dataTemp.size() < data.size()) {
-                            data.clear();
-                        }
-                        for (size_t i = 0; i < dataTemp.size(); i++) {
-                            data.push_back(dataTemp[i]);
-                        }                    
-                        dataTemp.clear();
-                        // Feed data to decoder...
-                    }
-                // Store or show the image...
-                }
-                
-            } else {
-                //cout << "NO HasAlternatives" << endl;
-                //std::cout << std::flush;   
-                for (const auto& sampleProperties : trackProperties.second.sampleProperties) {
-                    ImageFileReaderInterface::IdVector itemsToDecode;
-                    const uint32_t sampleId = sampleProperties.first;
-
-                    // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
-                    // decode all dependencies.
-                    reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
-                    for (auto dependencyId : itemsToDecode) {
-                        //std::cout << "HOLA1\n";
-                        reader.getItemDataWithDecoderParameters(contextId, dependencyId, dataTemp);
-                        for (size_t i = 0; i < dataTemp.size(); i++) {
-                            data.push_back(dataTemp[i]);
-                        }                    
-                        dataTemp.clear();
-                        // Feed data to decoder...
-                    }
-                    if (data.size() > 0) {
-                        break;
-                    }
-                // Store or show the image...
-                }
+                // A sample might have decoding dependencies. The simples way to handle this is just to always ask and
+                // decode all dependencies.
+                reader.getItemDecodeDependencies(contextId, sampleId, itemsToDecode);
+                //std::cout << "HOLA3" << endl;
+                for (auto dependencyId : itemsToDecode) {
+                    //std::cout << "HOLA4" << endl;
+                    reader.getItemDataWithDecoderParameters(contextId, dependencyId, data);
+                    // Feed data to decoder...
+                }               
+            // Store or show the image...
             }
         }
     }
@@ -276,7 +224,7 @@ void example4(const std::string testFile)
 
     reader.initialize(testFile);
     const auto& properties = reader.getFileProperties();
-
+    cout << "HOLA1" << endl;
     // Verify that the file has one or several images in the MetaBox
     if (not (properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasSingleImage) ||
         properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageCollection)))
@@ -286,12 +234,13 @@ void example4(const std::string testFile)
 
     // Find item IDs of 'iden' (identity transformation) type derived images
     const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
-    reader.getItemListByType(contextId, "iden", itemIds);
-
+    reader.getItemListByType(contextId, "grid", itemIds);
+    cout << itemIds.size() << endl;
     const uint32_t itemId = itemIds.at(0); // For demo purposes, assume there was one 'iden' item
-
+    cout << "HOLA2" << endl;
     // 'dimg' item reference points from the 'iden' derived item to the input(s) of the derivation
-    reader.getReferencedFromItemListByType(contextId, itemId, "dimg", itemIds);
+    reader.getReferencedFromItemListByType(contextId, itemId, "thmb", itemIds);
+    cout << itemIds.size() << endl;
     const uint32_t sourceItemId = itemIds.at(0); // For demo purposes, assume there was one
 
     // Get 'iden' item properties to find out what kind of derivation it is
@@ -475,13 +424,13 @@ void example6(const std::string testFile)
 }
 
 int main() {
-    const std::string testFile = "C031.heic";
+    const std::string testFile = "IMG_0678.HEIC";
     //example1(testFile);
     //example2(testFile);
     //example3(testFile);
-    //example4(testFile);
+    example4(testFile);
     //example5(testFile);
     //example6(testFile);
-    return extractMaster();
+    //return extractMaster();
 }
 

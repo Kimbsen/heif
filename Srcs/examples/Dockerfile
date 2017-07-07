@@ -8,7 +8,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y git \
 
 WORKDIR /root
 
-RUN git clone https://github.com/nokiatech/heif.git
+RUN git clone https://github.com/Eriken/heif.git
 
 RUN cd heif && mkdir build && cd build && cmake .. && make
 
@@ -17,4 +17,4 @@ RUN cp /root/heif/build/Srcs/*/*/*.a /root/heif/Srcs/examples/
 
 WORKDIR /root/heif/Srcs/examples
 
-RUN c++ -lstdc++ -I/root/heif/build -I/root/heif/Srcs/common -I/root/heif/Srcs/parser -I/root/heif/Srcs/parser/avcparser -I/root/heif/Srcs/parser/h265parser -I/root/heif/Srcs/reader/ -I/root/heif/Srcs/writer -std=c++11 -L/root/heif/Srcs/examples -lcommon -lheifreader -lheifwriter -ljson -lavcparser -lh265parser example.cpp
+RUN c++ -lstdc++ -I/root/heif/build -I/root/heif/Srcs/common -I/root/heif/Srcs/parser -I/root/heif/Srcs/parser/avcparser -I/root/heif/Srcs/parser/h265parser -I/root/heif/Srcs/reader/ -I/root/heif/Srcs/writer -std=c++11 thumb_extractor.cpp.cpp -L/root/heif/Srcs/examples -Wl,--start-group -lcommon -lheifreader -lheifwriter -ljson -lavcparser -lh265parser -Wl,--end-group

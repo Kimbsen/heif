@@ -3,105 +3,65 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 )
 
-const (
-	HEIC_DIR = "/Users/erik/Documents/heif_conformance/conformance_files"
-)
-
 func main() {
-	filenames, err := getFilenames()
+	tiles, err := getTiles()
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
-	err = extractH265Thumbs(filenames)
+	err = transcodeH265Tiles(tiles)
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
 }
 
-func getFilenames() ([]string, error) {
-	dir, err := os.Open(HEIC_DIR)
+func getTiles() ([]string, error) {
+	wd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
-	filenames, err := dir.Readdirnames(0)
+	dir, err := os.Open(fmt.Sprintf("%s/tiles/", wd))
 	if err != nil {
 		return nil, err
 	}
-	return filenames, nil
+	tiles, err := dir.Readdirnames(0)
+	if err != nil {
+		return nil, err
+	}
+	tilesWithPath := []string{}
+	for _, tile := range tiles {
+		tilesWithPath = append(tilesWithPath, fmt.Sprintf("%s/tiles/%s", wd, tile))
+	}
+
+	return tilesWithPath, nil
 }
 
-func extractH265Thumbs(filenames []string) error {
-	for _, filename := range filenames {
-		if filename == "C026.heic" || filename == "C029.heic" || filename == "C030.heic" {
-			//continue
-		}
-		blob, err := extractH265Thumb(filename)
+func transcodeH265Tiles(tiles []string) error {
+	for _, tile := range tiles {
+		err := transcodeH265Tile(tile)
 		if err != nil {
-			return fmt.Errorf("%s failed @ extractH265Thumb, reason: %s", filename, err.Error())
+			return err
 		}
-		err = transcodeH265Thumb(blob, filename)
-		if err != nil {
-			return fmt.Errorf("%s failed @ transcodeH265Thumb, reason: %s", filename, err.Error())
-		}
-		log.Printf("%s processed!", filename)
+		log.Printf("%s processed!", tile)
 	}
 	return nil
 }
 
-func extractH265Thumb(filename string) ([]byte, error) {
-	file, err := os.Open(fmt.Sprintf("%s/%s", HEIC_DIR, filename))
-	if err != nil {
-		return nil, err
-	}
+func transcodeH265Tile(tile string) error {
+	cmd := exec.Command("ffmpeg", "-i", tile, "-loglevel", "fatal", "-frames:v", "1", "-vsync", "vfr", "-q:v", "1", "-an", fmt.Sprintf("%s.jpg", tile))
 	var stdOut bytes.Buffer
 	var stdErr bytes.Buffer
-	cmd := exec.Command("./a.out")
 
-	cmd.Stdin = file
 	cmd.Stdout = &stdOut
 	cmd.Stderr = &stdErr
-	err = cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-
-	return stdOut.Bytes(), nil
-}
-
-func transcodeH265Thumb(blob []byte, filename string) error {
-	tempFile, err := ioutil.TempFile("", "temp")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tempFile.Name())
-	_, err = tempFile.Write(blob)
-	if err != nil {
-		return err
-	}
-	log.Println(tempFile.Name())
-	var stdOut bytes.Buffer
-	var stdErr bytes.Buffer
-	//blobReader := bytes.NewReader(blob)
-	var name string
-	if filename == "C031.heic" {
-		name = filename
-	} else {
-		name = tempFile.Name()
-	}
-	cmd := exec.Command("ffmpeg", "-i", name, "-loglevel", "fatal", "-frames:v", "1", "-vsync", "vfr", "-q:v", "1", "-an", fmt.Sprintf("%s.jpg", filename))
-
-	//cmd.Stdin = blobReader
-	cmd.Stdout = &stdOut
-	cmd.Stderr = &stdErr
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return err
 	}

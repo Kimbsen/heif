@@ -1,5 +1,56 @@
-c++ -v -lstdc++ -I/root/heif/build -I/root/heif/Srcs/common -I/root/heif/Srcs/parser -I/root/heif/Srcs/parser/avcparser -I/root/heif/Srcs/parser/h265parser -I/root/heif/Srcs/reader/ -I/root/heif/Srcs/writer -std=c++11 -L/root/heif/Srcs/examples -lcommon -lheifreader -lheifwriter -ljson -lavcparser -lh265parser example.cpp
+c++ -lstdc++ -I/root/heif/build -I/root/heif/Srcs/common -I/root/heif/Srcs/parser -I/root/heif/Srcs/parser/avcparser -I/root/heif/Srcs/parser/h265parser -I/root/heif/Srcs/reader/ -I/root/heif/Srcs/writer -std=c++11 thumb_extractor.cpp.cpp -L/root/heif/Srcs/examples -Wl,--start-group -lcommon -lheifreader -lheifwriter -ljson -lavcparser -lh265parser -Wl,--end-group
+
+ffmpeg -i tile_1.h265 -i tile_2.h265 -i tile_3.h265 -i tile_4.h265 -filter_complex "nullsrc=size=1024x1024 [base];[0:v] setpts=PTS-STARTPTS, scale=512x512 [upperleft];[1:v] setpts=PTS-STARTPTS, scale=512x512 [upperright];[2:v] setpts=PTS-STARTPTS, scale=512x512 [lowerleft];[3:v] setpts=PTS-STARTPTS, scale=512x512 [lowerright];[base][upperleft] overlay=shortest=1 [tmp1];[tmp1][upperright] overlay=shortest=1:x=512 [tmp2];[tmp2][lowerleft] overlay=shortest=1:y=512 [tmp3];[tmp3][lowerright] overlay=shortest=1:x=512:y=512" -c:v libx264 output.h264
 
 
+montage tile_[1-48].h265.jpg -geometry 512x512 -border 0 -tile 8x6 final.jpg
 
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -I/Users/erik/Documents/heif/Srcs/common -I/Users/erik/Documents/heif/Srcs/parser -I/Users/erik/Documents/heif/Srcs/parser/avcparser -I/Users/erik/Documents/heif/Srcs/parser/h265parser -I/Users/erik/Documents/heif/Srcs/reader -std=c++11 -Wall -Wextra -Werror -Wno-missing-field-initializers -L/Users/erik/Documents/heif/Srcs/examples -lcommon -lheifreader -ljson -lavcparser -lh265parser example.cpp
+
+montage tile_1.h265.jpg \
+tile_2.h265.jpg \
+tile_3.h265.jpg \
+tile_4.h265.jpg \
+tile_5.h265.jpg \
+tile_6.h265.jpg \
+tile_7.h265.jpg \
+tile_8.h265.jpg \
+tile_9.h265.jpg \
+tile_10.h265.jpg \
+tile_11.h265.jpg \
+tile_12.h265.jpg \
+tile_13.h265.jpg \
+tile_14.h265.jpg \
+tile_15.h265.jpg \
+tile_16.h265.jpg \
+tile_17.h265.jpg \
+tile_18.h265.jpg \
+tile_19.h265.jpg \
+tile_20.h265.jpg \
+tile_21.h265.jpg \
+tile_22.h265.jpg \
+tile_23.h265.jpg \
+tile_24.h265.jpg \
+tile_25.h265.jpg \
+tile_26.h265.jpg \
+tile_27.h265.jpg \
+tile_28.h265.jpg \
+tile_29.h265.jpg \
+tile_30.h265.jpg \
+tile_31.h265.jpg \
+tile_32.h265.jpg \
+tile_33.h265.jpg \
+tile_34.h265.jpg \
+tile_35.h265.jpg \
+tile_36.h265.jpg \
+tile_37.h265.jpg \
+tile_38.h265.jpg \
+tile_39.h265.jpg \
+tile_40.h265.jpg \
+tile_41.h265.jpg \
+tile_42.h265.jpg \
+tile_43.h265.jpg \
+tile_44.h265.jpg \
+tile_45.h265.jpg \
+tile_46.h265.jpg \
+tile_47.h265.jpg \
+tile_48.h265.jpg -geometry 512x512 -border 0 -tile 8x6 final.jpg
