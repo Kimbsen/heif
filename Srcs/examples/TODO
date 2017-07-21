@@ -1,4 +1,8 @@
+//OS X
 c++ -I/Users/erik/Documents/heif/Srcs/common -I/Users/erik/Documents/heif/Srcs/parser -I/Users/erik/Documents/heif/Srcs/parser/avcparser -I/Users/erik/Documents/heif/Srcs/parser/h265parser -I/Users/erik/Documents/heif/Srcs/reader -std=c++11 -Wall -Wextra -Werror -Wno-missing-field-initializers -L/Users/erik/Documents/heif/Srcs/examples -lcommon -lheifreader -ljson -lavcparser -lh265parser thumb_extractor.cpp
+
+//LINUX
++c++ -lstdc++ -I/root/heif/build -I/root/heif/Srcs/common -I/root/heif/Srcs/parser -I/root/heif/Srcs/parser/avcparser -I/root/heif/Srcs/parser/h265parser -I/root/heif/Srcs/reader/ -I/root/heif/Srcs/writer -std=c++11 thumb_extractor.cpp.cpp -L/root/heif/Srcs/examples -Wl,--start-group -lcommon -lheifreader -lheifwriter -ljson -lavcparser -lh265parser -Wl,--end-group
 
 ffmpeg -i tile_1.h265 -i tile_2.h265 -i tile_3.h265 -i tile_4.h265 -filter_complex "nullsrc=size=1024x1024 [base];[0:v] setpts=PTS-STARTPTS, scale=512x512 [upperleft];[1:v] setpts=PTS-STARTPTS, scale=512x512 [upperright];[2:v] setpts=PTS-STARTPTS, scale=512x512 [lowerleft];[3:v] setpts=PTS-STARTPTS, scale=512x512 [lowerright];[base][upperleft] overlay=shortest=1 [tmp1];[tmp1][upperright] overlay=shortest=1:x=512 [tmp2];[tmp2][lowerleft] overlay=shortest=1:y=512 [tmp3];[tmp3][lowerright] overlay=shortest=1:x=512:y=512" -c:v libx264 output.h264
 
