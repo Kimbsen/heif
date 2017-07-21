@@ -17,14 +17,21 @@
 #include <iostream>
 #include <boost/interprocess/streams/bufferstream.hpp>
 #include <fstream>
+#include "json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
+
+struct Blob {
+    vector<unsigned char> data;
+};
 
 struct Metadata {
     uint32_t width;
     uint32_t height;
     uint16_t rotation;
-    vector<string> tiles;
+    vector<string> tileNames;
+    vector<Blob> tileBlobs;
 };
 
 vector<char> readFromStdin() {
@@ -71,23 +78,34 @@ Metadata fetchMetadata(HevcImageFileReader &reader, uint32_t contextId) {
     return metadata;
 }
 
-vector<string> writeTiles(HevcImageFileReader &reader, uint32_t contextId) {
+vector<string> getTileNames(HevcImageFileReader &reader, uint32_t contextId) {
     ImageFileReaderInterface::DataVector data;
     ImageFileReaderInterface::IdVector masterItemIds;    
-    vector<string> tiles;
+    vector<string> tileNames;
     reader.getItemListByType(contextId, "master", masterItemIds);
     for (const auto masterId : masterItemIds) {
         reader.getItemDataWithDecoderParameters(contextId, masterId, data);
 
         char buff[100];
         snprintf(buff, sizeof(buff), "tile_%d.h265", masterId);
-        std::string filename = buff;
-        tiles.push_back(filename);
-        std::ofstream ofile(filename);
-        //ofile.write((char*) &data[0], data.size());
-        ofile.close();
+        string filename = buff;
+        tileNames.push_back(filename);
     } 
-    return tiles;
+    return tileNames;
+}
+
+vector<Blob> getTileBlobs(HevcImageFileReader &reader, uint32_t contextId) {
+    ImageFileReaderInterface::DataVector data;
+    ImageFileReaderInterface::IdVector masterItemIds;    
+    vector<Blob> tileBlobs;
+    reader.getItemListByType(contextId, "master", masterItemIds);
+    for (const auto masterId : masterItemIds) {
+        reader.getItemDataWithDecoderParameters(contextId, masterId, data);
+        Blob blob;
+        blob.data = data;
+        tileBlobs.push_back(blob);
+    } 
+    return tileBlobs;
 }
 
 
@@ -117,13 +135,29 @@ int main() {
     cout << metadata.width << endl;
     cout << metadata.height << endl;
 
-    auto tiles = writeTiles(reader, contextId);
 
-    metadata.tiles = tiles;
+    metadata.tileNames = getTileNames(reader, contextId);
 
-    for (auto tile : metadata.tiles) {
-        cout << tile << endl;
+    metadata.tileBlobs = getTileBlobs(reader, contextId);
+
+    for (auto tileName : metadata.tileNames) {
+        cout << tileName << endl;
     }
+
+    for (auto tileBlob : metadata.tileBlobs) {
+        cout << tileBlob.data.size() << endl;
+    }    
+
+    json j;
+    j["tile_names"] = metadata.tileNames;
+    j["width"] = metadata.width;
+    j["height"] = metadata.height;
+    j["rotation"] = metadata.rotation;
+    ofstream ofile("metadata.json");
+    ofile << j;
+    ofile.close();
+
+    
 
     //write blob to stdout
     /*for (size_t i = 0; i < data.size(); i++) {
