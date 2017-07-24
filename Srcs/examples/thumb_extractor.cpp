@@ -108,13 +108,30 @@ vector<Blob> getTileBlobs(HevcImageFileReader &reader, uint32_t contextId) {
     return tileBlobs;
 }
 
+void writeMetadataToDisk(Metadata metadata) {
+    json j;
+    j["tile_names"] = metadata.tileNames;
+    j["width"] = metadata.width;
+    j["height"] = metadata.height;
+    j["rotation"] = metadata.rotation;
+    ofstream ofile("metadata.json");
+    ofile << j;
+    ofile.close();
+}
+
+void writeTilesToDisk(Metadata metadata) {
+    for (size_t i = 0; i < metadata.tileNames.size(); i++) {
+        ofstream ofile(metadata.tileNames[i]);
+        ofile.write((char*) &metadata.tileBlobs[i].data[0], metadata.tileBlobs[i].data.size());
+        ofile.close();
+    }
+}
 
 int main() {
     auto buffer = readFromStdin();
     
     HevcImageFileReader reader;
     
-
     boost::interprocess::bufferstream input_stream(&buffer[0], buffer.size());
     reader.initialize(input_stream);
 
@@ -131,40 +148,19 @@ int main() {
 
     auto metadata = fetchMetadata(reader, contextId);
 
-    cout << metadata.rotation << endl;
-    cout << metadata.width << endl;
-    cout << metadata.height << endl;
-
-
     metadata.tileNames = getTileNames(reader, contextId);
 
     metadata.tileBlobs = getTileBlobs(reader, contextId);
 
-    for (auto tileName : metadata.tileNames) {
-        cout << tileName << endl;
+    if (metadata.tileNames.size() != metadata.tileBlobs.size()) {
+        return 1;
     }
 
-    for (auto tileBlob : metadata.tileBlobs) {
-        cout << tileBlob.data.size() << endl;
-    }    
+    writeMetadataToDisk(metadata);
 
-    json j;
-    j["tile_names"] = metadata.tileNames;
-    j["width"] = metadata.width;
-    j["height"] = metadata.height;
-    j["rotation"] = metadata.rotation;
-    ofstream ofile("metadata.json");
-    ofile << j;
-    ofile.close();
+    writeTilesToDisk(metadata);
 
-    
-
-    //write blob to stdout
-    /*for (size_t i = 0; i < data.size(); i++) {
-        cout << data[i];
-    }*/
-        
-
+    cout << "All done!" << endl;
 
     reader.close();
     return 0;
