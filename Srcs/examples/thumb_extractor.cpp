@@ -30,7 +30,7 @@ struct Metadata {
     uint32_t width;
     uint32_t height;
     uint16_t rotation;
-    vector<string> tileNames;
+    vector<uint32_t> tileIndexes;
     vector<Blob> tileBlobs;
 };
 
@@ -78,20 +78,16 @@ Metadata fetchMetadata(HevcImageFileReader &reader, uint32_t contextId) {
     return metadata;
 }
 
-vector<string> getTileNames(HevcImageFileReader &reader, uint32_t contextId) {
+vector<uint32_t> getTileIndexes(HevcImageFileReader &reader, uint32_t contextId) {
     ImageFileReaderInterface::DataVector data;
     ImageFileReaderInterface::IdVector masterItemIds;    
-    vector<string> tileNames;
+    vector<uint32_t> tileIndexes;
     reader.getItemListByType(contextId, "master", masterItemIds);
     for (const auto masterId : masterItemIds) {
         reader.getItemDataWithDecoderParameters(contextId, masterId, data);
-
-        char buff[100];
-        snprintf(buff, sizeof(buff), "tile_%d.h265", masterId);
-        string filename = buff;
-        tileNames.push_back(filename);
+        tileIndexes.push_back(masterId);
     } 
-    return tileNames;
+    return tileIndexes;
 }
 
 vector<Blob> getTileBlobs(HevcImageFileReader &reader, uint32_t contextId) {
@@ -110,7 +106,7 @@ vector<Blob> getTileBlobs(HevcImageFileReader &reader, uint32_t contextId) {
 
 void writeMetadataToDisk(Metadata metadata) {
     json j;
-    j["tile_names"] = metadata.tileNames;
+    j["tile_indexes"] = metadata.tileIndexes;
     j["width"] = metadata.width;
     j["height"] = metadata.height;
     j["rotation"] = metadata.rotation;
@@ -120,8 +116,11 @@ void writeMetadataToDisk(Metadata metadata) {
 }
 
 void writeTilesToDisk(Metadata metadata) {
-    for (size_t i = 0; i < metadata.tileNames.size(); i++) {
-        ofstream ofile(metadata.tileNames[i]);
+    for (size_t i = 0; i < metadata.tileIndexes.size(); i++) {
+        char buff[100];
+        snprintf(buff, sizeof(buff), "%d", metadata.tileIndexes[i]);
+        string tilename = buff;        
+        ofstream ofile(tilename);
         ofile.write((char*) &metadata.tileBlobs[i].data[0], metadata.tileBlobs[i].data.size());
         ofile.close();
     }
@@ -148,11 +147,11 @@ int main() {
 
     auto metadata = fetchMetadata(reader, contextId);
 
-    metadata.tileNames = getTileNames(reader, contextId);
+    metadata.tileIndexes = getTileIndexes(reader, contextId);
 
     metadata.tileBlobs = getTileBlobs(reader, contextId);
 
-    if (metadata.tileNames.size() != metadata.tileBlobs.size()) {
+    if (metadata.tileIndexes.size() != metadata.tileBlobs.size()) {
         return 1;
     }
 
