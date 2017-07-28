@@ -134,9 +134,8 @@ void writeTilesToDisk(Metadata metadata) {
 
 int main() {
     auto buffer = readFromStdin();
-    
+
     HevcImageFileReader reader;
-    
     boost::interprocess::bufferstream input_stream(&buffer[0], buffer.size());
     reader.initialize(input_stream);
 
@@ -147,7 +146,7 @@ int main() {
         !properties.fileFeature.hasFeature(ImageFileReaderInterface::FileFeature::HasImageSequence)) {
         return 1;
     }
-    
+
     // Find the item ID of the first master image
     const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
 
