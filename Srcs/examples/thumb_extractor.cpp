@@ -29,6 +29,8 @@ struct Blob {
 struct Metadata {
     uint32_t width;
     uint32_t height;
+    uint8_t rows;
+    uint8_t cols;    
     uint16_t rotation;
     vector<uint32_t> tileIndexes;
     vector<Blob> tileBlobs;
@@ -65,6 +67,8 @@ Metadata fetchMetadata(HevcImageFileReader &reader, uint32_t contextId) {
     gridItem = reader.getItemGrid(contextId, gridItemIds.at(0));
     metadata.width = gridItem.outputWidth;
     metadata.height = gridItem.outputHeight;
+    metadata.rows = gridItem.rowsMinusOne;
+    metadata.cols = gridItem.columnsMinusOne;
 
     const uint32_t itemId = gridItemIds.at(0);
     const auto itemProperties =  reader.getItemProperties(contextId, itemId);
@@ -106,9 +110,11 @@ vector<Blob> getTileBlobs(HevcImageFileReader &reader, uint32_t contextId) {
 
 void writeMetadataToDisk(Metadata metadata) {
     json j;
-    j["tile_indexes"] = metadata.tileIndexes;
+    j["number_of_tiles"] = metadata.tileIndexes.size();
     j["width"] = metadata.width;
     j["height"] = metadata.height;
+    j["rows"] = metadata.rows+1;
+    j["cols"] = metadata.cols+1;
     j["rotation"] = metadata.rotation;
     ofstream ofile("metadata.json");
     ofile << j;
