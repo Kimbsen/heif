@@ -11,6 +11,7 @@
  */
 
 #include "metabox.hpp"
+#include "log.hpp"
 
 MetaBox::MetaBox() :
     FullBox("meta", 0, 0),
@@ -219,12 +220,14 @@ void MetaBox::writeBox(BitStream& bitstr)
 void MetaBox::parseBox(BitStream& bitstr)
 {
     parseFullBoxHeader(bitstr);
+    
+
 
     while (bitstr.numBytesLeft() > 0)
     {
         FourCCInt boxType;
         BitStream subBitstr = bitstr.readSubBoxBitStream(boxType);
-
+        logInfo() << __func__ << " " << boxType << std::endl;
         if (boxType == "hdlr")
         {
             mHandlerBox.parseBox(subBitstr);

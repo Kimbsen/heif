@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	_ "bytes"
 	"fmt"
 	//"io/ioutil"
 	"log"
@@ -56,11 +56,9 @@ func transcodeH265Tiles(tiles []string) error {
 
 func transcodeH265Tile(tile string) error {
 	cmd := exec.Command("ffmpeg", "-i", tile, "-loglevel", "fatal", "-frames:v", "1", "-vsync", "vfr", "-q:v", "1", "-an", fmt.Sprintf("%s.jpg", tile))
-	var stdOut bytes.Buffer
-	var stdErr bytes.Buffer
 
-	cmd.Stdout = &stdOut
-	cmd.Stderr = &stdErr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return err

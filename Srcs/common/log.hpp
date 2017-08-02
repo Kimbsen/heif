@@ -14,6 +14,9 @@
 #define LOG_HPP
 #include <ostream>
 
+#define PRETTY_LOG logInfo() << typeid(*this).name() << ":" << __func__ << " "
+#define PRETTY_LOG_FUNC logInfo() << typeid(*this).name() << ":" << __func__ << std::endl;
+
 /** @brief Helper class for Logging information during execution.
  *  @details Log levels can be Error, Warning and Info **/
 class Log

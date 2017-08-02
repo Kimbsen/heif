@@ -14,6 +14,7 @@
  *  Note that binary execution fails if proper .heic files are not located in the directory */
 
 #include "hevcimagefilereader.hpp"
+#include "log.hpp"
 #include <iostream>
 #include <boost/interprocess/streams/bufferstream.hpp>
 #include <fstream>
@@ -21,6 +22,9 @@
 
 using namespace std;
 using json = nlohmann::json;
+
+#define LOG(X) std::cout << X << std::endl;
+#define LOG2(X,Y) std::cout << X << Y << std::endl;
 
 struct Blob {
     vector<unsigned char> data;
@@ -46,14 +50,15 @@ vector<char> readFromStdin() {
         readBufSize = cin.gcount();
         if(cin.fail() || cin.bad() || cin.eof()) {
             if (std::cin.eof()) {
+                LOG("EOF")
                 done = true;
             }
-            cin.clear();
-        }
+            cin.clear();        }
         for (size_t i = 0; i < readBufSize; i++) {
             buffer.push_back(input[i]);
         }
     }
+    std::cout << "GOT " << buffer.size() << " bytes" << std::endl;
     return buffer;
 }
 
@@ -91,6 +96,7 @@ vector<uint32_t> getTileIndexes(HevcImageFileReader &reader, uint32_t contextId)
         reader.getItemDataWithDecoderParameters(contextId, masterId, data);
         tileIndexes.push_back(masterId);
     } 
+    std::cout << "GOT " << tileIndexes.size() << " tileindexes" << std::endl;
     return tileIndexes;
 }
 
@@ -103,6 +109,7 @@ vector<Blob> getTileBlobs(HevcImageFileReader &reader, uint32_t contextId) {
         reader.getItemDataWithDecoderParameters(contextId, masterId, data);
         Blob blob;
         blob.data = data;
+        std::cout << "getTileBlob idx: " << masterId << " Size: " << blob.data.size() << "bytes" << std::endl;
         tileBlobs.push_back(blob);
     } 
     return tileBlobs;
@@ -124,7 +131,7 @@ void writeMetadataToDisk(Metadata metadata) {
 void writeTilesToDisk(Metadata metadata) {
     for (size_t i = 0; i < metadata.tileIndexes.size(); i++) {
         char buff[100];
-        snprintf(buff, sizeof(buff), "%d", metadata.tileIndexes[i]);
+        snprintf(buff, sizeof(buff), "%d.tile", metadata.tileIndexes[i]);
         string tilename = buff;        
         ofstream ofile(tilename);
         ofile.write((char*) &metadata.tileBlobs[i].data[0], metadata.tileBlobs[i].data.size());
@@ -132,12 +139,20 @@ void writeTilesToDisk(Metadata metadata) {
     }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    Log::setLevel(Log::LogLevel::INFO);
     auto buffer = readFromStdin();
 
     HevcImageFileReader reader;
     boost::interprocess::bufferstream input_stream(&buffer[0], buffer.size());
+    LOG(argc)
+    auto filepath = argv[0];
+
+    LOG2("Init stream",filepath)
+
     reader.initialize(input_stream);
+    LOG("Get file properties")
 
     // Verify that the file has one or several images in the MetaBox
     const auto& properties = reader.getFileProperties();
@@ -149,11 +164,12 @@ int main() {
 
     // Find the item ID of the first master image
     const uint32_t contextId = properties.rootLevelMetaBoxProperties.contextId;
+    LOG("Created context")
 
     auto metadata = fetchMetadata(reader, contextId);
-
+    LOG("Got metadata")
     metadata.tileIndexes = getTileIndexes(reader, contextId);
-
+    LOG("Got blobs")
     metadata.tileBlobs = getTileBlobs(reader, contextId);
 
     if (metadata.tileIndexes.size() != metadata.tileBlobs.size()) {

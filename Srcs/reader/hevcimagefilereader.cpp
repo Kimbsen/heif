@@ -1037,6 +1037,7 @@ void HevcImageFileReader::readStream()
         readBox(bitstream, boxType);
         if (boxType == "ftyp")
         {
+            logInfo() << "reading box ftyp" << std::endl;
             if (ftypFound == true)
             {
                 throw FileReaderException(FileReaderException::StatusCode::FILE_READ_ERROR, "Multiple ftyp boxes");
@@ -1106,6 +1107,7 @@ void HevcImageFileReader::readStream()
         }
         else if (boxType == "meta")
         {
+            logInfo() << "reading box meta" << std::endl;
             if (metaFound == true)
             {
                 throw FileReaderException(FileReaderException::StatusCode::FILE_READ_ERROR, "Multiple meta boxes");
@@ -1126,6 +1128,8 @@ void HevcImageFileReader::readStream()
         }
         else if (boxType == "moov")
         {
+            
+            logInfo() << "reading box moov" << std::endl;
             if (moovFound == true)
             {
                 throw FileReaderException(FileReaderException::StatusCode::FILE_READ_ERROR, "Multiple moov boxes");

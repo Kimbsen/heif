@@ -200,6 +200,8 @@ void BitStream::writeZeroTerminatedString(const string& srcString)
 
 uint8_t BitStream::read8Bits()
 {
+    if(mStorage.size() <= mByteOffset)
+        return '\0';
     const uint8_t ret = mStorage.at(mByteOffset);
     ++mByteOffset;
     return ret;
@@ -340,11 +342,15 @@ void BitStream::readZeroTerminatedString(string& dstString)
 
     dstString.clear();
     currChar = read8Bits();
+
+    //std::cout << "readZeroTerminatedString ";
     while (currChar != '\0')
     {
+        std::cout << currChar;
         dstString += currChar;
         currChar = read8Bits();
     }
+    std::cout << std::endl;
 }
 
 unsigned int BitStream::readExpGolombCode()

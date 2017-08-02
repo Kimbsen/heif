@@ -1,0 +1,3 @@
+#!/bin/sh
+
+c++ -I/Users/kim/dev/heif/Srcs/common -I/Users/kim/dev/heif/Srcs/parser -I/Users/kim/dev/heif/Srcs/parser/avcparser -I/Users/kim/dev/heif/Srcs/parser/h265parser -I/Users/kim/dev/heif/Srcs/reader -std=c++11 -Wall -Wextra -Werror -Wno-missing-field-initializers -L/Users/kim/dev/heif/Srcs/examples -lcommon -lheifreader -ljson -lavcparser -lh265parser thumb_extractor.cpp && mv a.out extractor

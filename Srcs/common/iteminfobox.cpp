@@ -11,6 +11,7 @@
  */
 
 #include "iteminfobox.hpp"
+#include "log.hpp"
 
 #include <stdexcept>
 
@@ -95,15 +96,18 @@ void ItemInfoBox::parseBox(BitStream& bitstr)
 
     if (getVersion() == 0)
     {
+        PRETTY_LOG << "getVersion() == 0" << std::endl;
         entryCount = bitstr.read16Bits();
     }
     else
     {
+        PRETTY_LOG << "getVersion() != 0" << std::endl;
         entryCount = bitstr.read32Bits();
     }
-
+        PRETTY_LOG << "entryCount == " <<  entryCount << std::endl;
     for (size_t i = 0; i < entryCount; ++i)
     {
+        PRETTY_LOG << "box #" << i << std::endl;
         ItemInfoEntry infoEntry;
         infoEntry.parseBox(bitstr);
         addItemInfoEntry(infoEntry);
@@ -310,7 +314,8 @@ void FDItemInfoExtension::write(BitStream& bitstr)
 void ItemInfoEntry::parseBox(BitStream& bitstr)
 {
     parseFullBoxHeader(bitstr);
-
+    auto version = (int)getVersion();
+    //PRETTY_LOG << "getVersion " << version<< std::endl;
     if (getVersion() == 0 || getVersion() == 1)
     {
         mItemID = bitstr.read16Bits();
@@ -341,12 +346,17 @@ void ItemInfoEntry::parseBox(BitStream& bitstr)
         bitstr.readZeroTerminatedString(mItemName);
         if (mItemType == "mime")
         {
+            PRETTY_LOG << "box:v2 reading mime contentType" << std::endl;
             bitstr.readZeroTerminatedString(mContentType);
+            PRETTY_LOG << "box:v2reading mime contentEncoding" << std::endl;
             bitstr.readZeroTerminatedString(mContentEncoding);
         }
         else if (mItemType == "uri ")
         {
+            PRETTY_LOG << "box:v2 reading uri" << std::endl;
             bitstr.readZeroTerminatedString(mItemUriType);
+        } else {
+            PRETTY_LOG << "box:v2 read " << mItemType << std::endl; 
         }
     }
 }
